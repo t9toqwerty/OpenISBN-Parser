@@ -1,16 +1,19 @@
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Scanner;
 
 import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -58,54 +61,108 @@ public class Main {
 	}
 
 	public static void main(String[] args) throws EncryptedDocumentException, InvalidFormatException, IOException {
-
-		InputStream inp = new FileInputStream("/home/rahul/eclipse/BookFarm5k.xlsx");
+		System.out.println("Enter file path including File Name.");
+		Scanner s1 = new Scanner(System.in);
+		String input_file_name = s1.next();
+		if (input_file_name.length() == 0) {
+			System.out.println("Input: Wrong file name or File not found. Exiting.....");
+			System.exit(1);
+		}
+		InputStream inp = new FileInputStream(input_file_name);
 		Workbook wb = WorkbookFactory.create(inp);
 		Sheet sheet = wb.getSheetAt(0);
-		int i = 0;
-		FileOutputStream out = new FileOutputStream("output.xlxs");
-		Workbook wb1 = new HSSFWorkbook();
-		Sheet s = wb1.createSheet("Sheet 1");
+		// int i = 0;
+		File file;
+		System.out.println(
+				"Create an Excel File to store Output data and Enter Outputfile Name.Name must end with extension XLSX.");
+		String opfilename = extracted().next();
+		if (opfilename.length() == 0) {
+			System.out.println("Output: Wrong file name or File not found. Exiting.....");
+			System.exit(1);
+		}
+		System.out.println("Enter Starting Point:");
+		Scanner s3 = new Scanner(System.in);
+		int i = s3.nextInt() - 1;
+		file = new File(opfilename);
+		FileInputStream fIP = new FileInputStream(file);
+		// Get the workbook instance for XLSX file
+		XSSFWorkbook workbook = new XSSFWorkbook(fIP);
+		if (file.isFile() && file.exists()) {
+			// System.out.println("file open successfully.");
+		} else {
+			System.out.println("Error opening file.");
+		}
+		// XSSFSheet s = workbook.createSheet("Sheet01");
+		XSSFSheet s = workbook.getSheetAt(0);
 		while (sheet.getRow(i) != null) {
 			Row row1 = sheet.getRow(i);
 			Cell cell = row1.getCell(0);
-
 			if (cell != null) {
-				System.out.println(cell.getStringCellValue());
+				System.out.println(i + 1 + " : Processing " + cell.getStringCellValue());
 				String isbn = cell.getStringCellValue();
 				String url = "http://openisbn.com/isbn/" + cell.getStringCellValue() + "/";
-				Document doc = Jsoup.connect(url)
-						.userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:46.0) Gecko/20100101 Firefox/46.0")
-						.timeout(50000).get();
-				System.out.println(doc.title());
+				// String url = "http://openisbn.com/isbn/" + "0072338849KK" +
+				// "/";
+				Document doc = null;
+				try {
+					doc = Jsoup.connect(url)
+							.userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:46.0) Gecko/20100101 Firefox/46.0")
+							.timeout(100000).get();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					continue;
+				}
+				// System.out.println(doc.title());
 				Element data_div = doc.select("div.PostContent").first();
 				Element image = data_div.getElementsByTag("img").first();
 				String book_title = image.attr("title");
 				String book_image_url = image.attr("src");
-				System.out.println("Book Title :" + book_title);
-				System.out.println("Book Image Url :" + book_image_url);
-				Main m = new Main();
+				// System.out.println("Book Title :" + book_title);
+				// System.out.println("Book Image Url :" + book_image_url);
 				// m.parseDetails(data_div.text());
 				Book book = new Book(data_div.text());
-				Row rowop = sheet.getRow(i);
+				Row rowop = s.createRow(i);
 				rowop.createCell(0).setCellValue(isbn);
 				rowop.createCell(1).setCellValue(book_title);
+				// System.out.println("Author : " + book.getAuthor());
 				rowop.createCell(2).setCellValue(book.getAuthor());
+				// System.out.println("Publisher : " + book.getPublisher());
 				rowop.createCell(3).setCellValue(book.getPublisher());
+				// System.out.println("Keywords : " + book.getKeywords());
 				rowop.createCell(4).setCellValue(book.getKeywords());
+				// System.out.println("Pages : " + book.getPages());
 				rowop.createCell(5).setCellValue(book.getPages());
+				// System.out.println("Published : " + book.getPublished());
 				rowop.createCell(6).setCellValue(book.getPublished());
+				// System.out.println("Language : " + book.getLanguage());
 				rowop.createCell(7).setCellValue(book.getLanguage());
+				// System.out.println("Category : " + book.getCategory());
 				rowop.createCell(8).setCellValue(book.getCategory());
+				// System.out.println("ISBN-10 : " + book.getIsbn_10());
 				rowop.createCell(9).setCellValue(book.getIsbn_10());
+				// System.out.println("ISBN-13 : " + book.getIsbn_13());
 				rowop.createCell(10).setCellValue(book.getIsbn_13());
+				// System.out.println("Binding : " + book.getBinding());
 				rowop.createCell(11).setCellValue(book.getBinding());
+				// System.out.println("List Price : " + book.getList_price());
 				rowop.createCell(12).setCellValue(book.getList_price());
 				rowop.createCell(13).setCellValue(book_image_url);
+
+				FileOutputStream out = new FileOutputStream(opfilename, true);
+				workbook.write(out);
+				out.close();
+
+				System.out.println(isbn + " is Done.");
 			}
 			i++;
+			// break;
 		}
 
+	}
+
+	private static Scanner extracted() {
+		return new Scanner(System.in);
 	}
 
 }
