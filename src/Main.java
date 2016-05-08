@@ -101,19 +101,32 @@ public class Main {
 				System.out.println(i + 1 + " : Processing " + cell.getStringCellValue());
 				String isbn = cell.getStringCellValue();
 				String url = "http://openisbn.com/isbn/" + cell.getStringCellValue() + "/";
-				// String url = "http://openisbn.com/isbn/" + "0072338849KK" +
+				// String url = "http://openisbn.com/isbn/" + "9780767921305" +
 				// "/";
 				Document doc = null;
 				try {
 					doc = Jsoup.connect(url)
 							.userAgent("Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:46.0) Gecko/20100101 Firefox/46.0")
 							.timeout(100000).get();
-				} catch (Exception e) {
+				} catch (IOException ie) {
 					// TODO Auto-generated catch block
+					ie.printStackTrace();
+					Row rowop1 = s.createRow(i);
+					rowop1.createCell(0).setCellValue(isbn);
+					rowop1.createCell(1).setCellValue("Error 404");
+					FileOutputStream out1 = new FileOutputStream(opfilename, true);
+					workbook.write(out1);
+					out1.close();
+					i++;
+					continue;
+				} catch (Exception e) {
+					// TODO: handle exception
 					e.printStackTrace();
 					continue;
 				}
 				// System.out.println(doc.title());
+				String book_description = doc.select("div.div").text();
+				// System.out.println(book_description);
 				Element data_div = doc.select("div.PostContent").first();
 				Element image = data_div.getElementsByTag("img").first();
 				String book_title = image.attr("title");
@@ -148,6 +161,7 @@ public class Main {
 				// System.out.println("List Price : " + book.getList_price());
 				rowop.createCell(12).setCellValue(book.getList_price());
 				rowop.createCell(13).setCellValue(book_image_url);
+				rowop.createCell(14).setCellValue(book_description);
 
 				FileOutputStream out = new FileOutputStream(opfilename, true);
 				workbook.write(out);
